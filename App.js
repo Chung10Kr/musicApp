@@ -82,7 +82,7 @@ export default class extends React.Component {
         return music;
       }
     });
-    let musicPath =  `http://192.168.200.134:3000/public/${musicitem.musicFile}` ;
+    let musicPath =  `http://172.30.1.14:3000/public/${musicitem.musicFile}` ;
 
     await sound.unloadAsync();
     await sound.loadAsync(  { uri:  musicPath } );
