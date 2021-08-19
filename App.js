@@ -2,62 +2,28 @@ import React from 'react'
 import { StyleSheet, TouchableOpacity, View, Image, Text } from 'react-native'
 import { Audio } from 'expo-av'
 import Icon from 'react-native-vector-icons/AntDesign';
+import axios from 'axios'
 import Loading from "./view/Loading"
+import { thisStringValue } from 'es-abstract';
 
-const audioBookPlaylist = [
-	{
-		title: 'Hamlet - Act I',
-		author: 'William Shakespeare',
-		source: 'Librivox',
-		uri:
-			'https://ia800204.us.archive.org/11/items/hamlet_0911_librivox/hamlet_act1_shakespeare.mp3',
-		imageSource: 'http://ia800209.us.archive.org/9/items/LibrivoxCdCoverArt8/Oko_no_Hosomichi_1104.jpg'
-	},
-	{
-		title: 'Hamlet - Act II',
-		author: 'William Shakespeare',
-		source: 'Librivox',
-		uri:
-			'https://ia600204.us.archive.org/11/items/hamlet_0911_librivox/hamlet_act2_shakespeare.mp3',
-		imageSource: 'http://www.archive.org/download/LibrivoxCdCoverArt8/hamlet_1104.jpg'
-	},
-	{
-		title: 'Hamlet - Act III',
-		author: 'William Shakespeare',
-		source: 'Librivox',
-		uri: 'http://www.archive.org/download/hamlet_0911_librivox/hamlet_act3_shakespeare.mp3',
-		imageSource: 'http://ia800209.us.archive.org/9/items/LibrivoxCdCoverArt8/North_Boston_1104.jpg'
-	},
-	{
-		title: 'Hamlet - Act IV',
-		author: 'William Shakespeare',
-		source: 'Librivox',
-		uri:
-			'https://ia800204.us.archive.org/11/items/hamlet_0911_librivox/hamlet_act4_shakespeare.mp3',
-		imageSource: 'http://www.archive.org/download/LibrivoxCdCoverArt8/hamlet_1104.jpg'
-	},
-	{
-		title: 'Hamlet - Act V',
-		author: 'William Shakespeare',
-		source: 'Librivox',
-		uri:
-			'https://ia600204.us.archive.org/11/items/hamlet_0911_librivox/hamlet_act5_shakespeare.mp3',
-		imageSource: ''
-	}
-]
+let httpUrl = 'https://kr.object.ncloudstorage.com/musicapp/';
+var audioBookPlaylist = null;
 
 export default class App extends React.Component {
 	state = {
-		isLoading: false,
+		isMenu: false,
 		isPlaying: false,
 		playbackInstance: null,
 		currentIndex: 0,
 		volume: 1.0,
-		isBuffering: true
+		isBuffering: true,
+		isList: false
 	}
 
 	async componentDidMount() {
 		try {
+			await this.loadList();
+
 			await Audio.setAudioModeAsync({
 				allowsRecordingIOS: false,
 				interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
@@ -67,11 +33,20 @@ export default class App extends React.Component {
 				staysActiveInBackground: true,
 				playThroughEarpieceAndroid: true
 			})
-
-			this.loadAudio()
+			
+			this.loadAudio();
 		} catch (e) {
 			console.log(e)
 		}
+	}
+	async loadList(){
+		await axios.get(httpUrl+'list.json')
+		.then(function ({data}) {
+			audioBookPlaylist = data;
+		})
+		.catch(function (error) {
+			console.log(error);
+		});
 	}
 
 	async loadAudio() {
@@ -91,7 +66,8 @@ export default class App extends React.Component {
 			playbackInstance.setOnPlaybackStatusUpdate(this.onPlaybackStatusUpdate)
 			await playbackInstance.loadAsync(source, status, false)
 			this.setState({
-				playbackInstance
+				playbackInstance,
+				isMenu:true
 			})
 		} catch (e) {
 			console.log(e)
@@ -134,7 +110,7 @@ export default class App extends React.Component {
 			this.loadAudio()
 		}
 	}
-	renderFileImg() {
+	renderFileImg(){
 		const { playbackInstance, currentIndex } = this.state
 		return playbackInstance ? (
 			<View style={styles.trackInfo}>
@@ -146,27 +122,40 @@ export default class App extends React.Component {
 				
 		) : null
 	}
-	renderFileInfo() {
+	renderFileInfo(){
 		const { playbackInstance, currentIndex } = this.state
 		return playbackInstance ? (
 			<View style={styles.trackInfo}>
 				<Text style={[styles.trackInfoText, styles.largeText]}>
 					{audioBookPlaylist[currentIndex].title}
 				</Text>
-				<Text style={[styles.trackInfoText, styles.smallText]}>
-					{audioBookPlaylist[currentIndex].author}
-				</Text>
-				<Text style={[styles.trackInfoText, styles.smallText]}>
-					{audioBookPlaylist[currentIndex].source}
-				</Text>
 			</View>
 		) : null
 	}
-
+	handelList(){
+		const { isList } = this.state;
+		this.setState({
+			isList: !isList
+		});
+	}
+	renderMusicList(){
+		const {isList} = this.state;
+		return !isList ? 
+		(
+			<TouchableOpacity style={styles.closeList} onPress={this.handelList.bind(this)}>
+				<Icon name='minus' size={30} color='#444' />
+			</TouchableOpacity>			
+		):
+		(
+			<TouchableOpacity style={styles.musicList} onPress={this.handelList.bind(this)}>
+				<Icon name='minus' size={30} color='#444' />
+			</TouchableOpacity>
+		)
+	}
 	render() {
-		let {isLoading} = this.state;
+		let {isMenu} = this.state;
 
-		return (
+		return !isMenu ? (<Loading/>) : (
 			<View style={styles.container}>
 				{this.renderFileImg()}
 				<View style={styles.controls}>
@@ -185,6 +174,7 @@ export default class App extends React.Component {
 					</TouchableOpacity>
 				</View>
 				{this.renderFileInfo()}
+				{this.renderMusicList()}
 			</View>
 		)
 		
@@ -198,19 +188,41 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center'
 	},
+	controls: {
+		flex:4,
+		flexDirection: 'row'
+	},
+	control: {
+		margin: 20
+	},
 	albumCover: {
-		width: 250,
-		height: 250
+		//width: 250,
+		//height: 250
 	},
 	trackInfo: {
-		padding: 40,
+		flex:4,
 		backgroundColor: '#fff'
 	},
-
-	trackInfoText: {
+	trackInfoText: {	
 		textAlign: 'center',
 		flexWrap: 'wrap',
 		color: '#550088'
+	},
+	musicList: {
+		flex:4,
+		width:"100%",
+		borderTopLeftRadius:30,
+		borderTopRightRadius:30,
+		alignItems:"center",
+		backgroundColor:"red"
+	},
+	closeList: {
+		flex:1,
+		width:"100%",
+		borderTopLeftRadius:30,
+		borderTopRightRadius:30,
+		alignItems:"center",
+		backgroundColor:"#d2d2d2"
 	},
 	largeText: {
 		fontSize: 22
@@ -218,10 +230,6 @@ const styles = StyleSheet.create({
 	smallText: {
 		fontSize: 16
 	},
-	control: {
-		margin: 20
-	},
-	controls: {
-		flexDirection: 'row'
-	}
+	
+
 })
