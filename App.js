@@ -22,6 +22,7 @@ export default class App extends React.Component {
 
 	async componentDidMount() {
 		try {
+			this.loadYoutube();
 			await this.loadList();
 
 			await Audio.setAudioModeAsync({
@@ -39,6 +40,27 @@ export default class App extends React.Component {
 			console.log(e)
 		}
 	}
+	async loadYoutube(){
+		const apiKey = "**";
+	    const channelid = "UCI2uIodAJX8aKgfZNvGqBIw";
+		const jeiuId = "UCH_kbGvUpMwBAl1NyX_c9XA";
+		var url = "https://www.googleapis.com/youtube/v3/search";
+		url+="?key="+apiKey;
+		url+="&part=snippet";
+		url+="&channelid="+jeiuId;
+		url+="&type=video";
+		console.log("=====youtube=====")
+		await axios.get( url )
+		.then(function (data) {
+			console.log("=====youtube data =====")
+			console.log( data )
+			console.log("=====youtube data =====")
+		})
+		.catch(function (error) {
+			console.log(error);
+		});
+	}
+
 	async loadList(){
 		await axios.get(httpUrl+'list.json')
 		.then(function ({data}) {
